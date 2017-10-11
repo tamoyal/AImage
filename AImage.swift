@@ -51,7 +51,11 @@ public class AImageView: UIView {
         timer?.preferredFramesPerSecond = self.aImage!.framePerSecond
         timer?.add(to: RunLoop.main, forMode: .commonModes)
     }
-    
+
+    public func restartAnimation() {
+        self.indexAt = 0
+    }
+
     deinit {
         timer?.invalidate()
     }
