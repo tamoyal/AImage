@@ -26,6 +26,13 @@ imageview.play = true
 /* Stop displaying animated image */
 imageview.play = false
 
+/* Stop displaying the image after minimum execution time (to prevent load animation flashes) */
+imageview.stopAfter(1.0) {
+    imageview.isHidden = true
+    imageview.play = false
+    // Code to that was waiting to execute
+}
+
 ********************* Demo *********************/
 
 import ImageIO
@@ -34,7 +41,29 @@ import UIKit
 public class AImageView: UIView {
     
     /* Whether the image is displaying or not */
-    public var play: Bool = false
+    public var play: Bool = false {
+        didSet {
+            if play == true {
+                startTime = DispatchTime.now()
+            }
+        }
+    }
+
+    /* Make sure the loading animation is run for minimum time before stopping  */
+    public func stopAfter(_ minimumExecutionTime_SECONDS: Double, onComplete: @escaping ()->()) {
+        if let elapsed_SECONDS = elapsedTime_SECONDS() {
+            if elapsed_SECONDS >= minimumExecutionTime_SECONDS {
+                onComplete()
+            } else {
+                let delay_SECONDS = DispatchTime.now() + (minimumExecutionTime_SECONDS - elapsed_SECONDS)
+                DispatchQueue.main.asyncAfter(deadline: delay_SECONDS) {
+                    onComplete()
+                }
+            }
+        } else {
+            onComplete()
+        }
+    }
     
     /* Add an 'AImage' to 'AImageView' */
     // limit: Memory limit (in MB)
@@ -60,6 +89,7 @@ public class AImageView: UIView {
         timer?.invalidate()
     }
     
+    private var startTime: DispatchTime?
     private var aImage:AImage?
     private var indexAt:Int = 0
     private var timer:CADisplayLink?
@@ -106,6 +136,12 @@ public class AImageView: UIView {
         let rawImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return rawImage!
+    }
+
+    private func elapsedTime_SECONDS() -> Double? {
+        if startTime == nil { return nil }
+        let nanoTime = DispatchTime.now().uptimeNanoseconds - startTime!.uptimeNanoseconds
+        return Double(nanoTime) / 1_000_000_000
     }
     
     internal func timerFired() {
